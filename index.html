@@ -213,6 +213,11 @@
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
             scroll-padding-bottom: 180px;
+            scrollbar-width: none;
+        }
+        .page::-webkit-scrollbar {
+            width: 0;
+            height: 0;
         }
         .page.active { display: flex; flex-direction: column; animation: iosReveal 0.6s cubic-bezier(0.1, 0.9, 0.2, 1); }
         @keyframes iosReveal { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
@@ -827,7 +832,12 @@
         // UI UPDATERS
         function updateUI() {
             let bal = 0, tin = 0, tout = 0;
-            transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+            transactions.sort((a, b) => {
+                const ad = new Date(a.date).getTime() || 0;
+                const bd = new Date(b.date).getTime() || 0;
+                if (bd !== ad) return bd - ad;
+                return (parseInt(b.id, 10) || 0) - (parseInt(a.id, 10) || 0);
+            });
             
             transactions.forEach(t => {
                 const a = parseFloat(t.amt) || 0;
@@ -900,10 +910,16 @@
                 );
             }
             items.sort((a, b) => {
-                if (logSort === 'date-asc') return new Date(a.date) - new Date(b.date);
+                const ad = new Date(a.date).getTime() || 0;
+                const bd = new Date(b.date).getTime() || 0;
+                if (logSort === 'date-asc') {
+                    if (ad !== bd) return ad - bd;
+                    return (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0);
+                }
                 if (logSort === 'amt-desc') return b.amt - a.amt;
                 if (logSort === 'amt-asc') return a.amt - b.amt;
-                return new Date(b.date) - new Date(a.date);
+                if (bd !== ad) return bd - ad;
+                return (parseInt(b.id, 10) || 0) - (parseInt(a.id, 10) || 0);
             });
 
             const count = items.length;
@@ -1107,11 +1123,6 @@
             document.getElementById('tx-desc').value = '';
             document.getElementById('tx-party').placeholder = type === 'in' ? 'Source / Client' : 'Vendor / Reason';
             document.getElementById('save-btn').innerText = 'SAVE TO VAULT';
-            const last = JSON.parse(localStorage.getItem(`mp_last_${type}`) || 'null');
-            if (last) {
-                if (last.party) document.getElementById('tx-party').value = last.party;
-                if (last.desc) document.getElementById('tx-desc').value = last.desc;
-            }
             document.getElementById('modal-overlay').classList.add('open');
             document.getElementById('tx-amt').focus();
         };
@@ -1142,9 +1153,13 @@
             }));
             updateUI();
             closeModal();
+            editingId = null;
+            document.getElementById('save-btn').innerText = 'SAVE TO VAULT';
             // Clear inputs
             document.getElementById('tx-amt').value = '';
             document.getElementById('tx-party').value = '';
+            document.getElementById('tx-desc').value = '';
+            document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
         };
 
         window.deleteTx = (id) => {
