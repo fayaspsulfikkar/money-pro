@@ -937,10 +937,17 @@
 
             const showBanner = () => banner && banner.classList.add('show');
             const hideBanner = () => banner && banner.classList.remove('show');
+            const resetInstallState = () => {
+                if (installBtn) {
+                    installBtn.disabled = false;
+                    installBtn.innerText = 'Install';
+                }
+            };
             const setInstallPrompt = () => {
                 if (installText) installText.innerText = 'Install this app for quick access.';
                 if (installBtn) installBtn.style.display = 'inline-flex';
                 if (installClose) installClose.innerText = 'Later';
+                resetInstallState();
             };
             const setManualSteps = (msg) => {
                 if (installText) installText.innerText = msg;
@@ -1002,10 +1009,17 @@
                 installBtn.style.display = 'none';
                 installBtn.addEventListener('click', async () => {
                     if (!deferredPrompt) return;
+                    installBtn.disabled = true;
+                    installBtn.innerText = 'Installing...';
                     deferredPrompt.prompt();
-                    await deferredPrompt.userChoice;
+                    const choice = await deferredPrompt.userChoice;
                     deferredPrompt = null;
-                    hideBanner();
+                    resetInstallState();
+                    if (choice && choice.outcome === 'accepted') {
+                        hideBanner();
+                    } else {
+                        setInstallPrompt();
+                    }
                 });
             }
 
@@ -1015,6 +1029,11 @@
                 deferredPrompt = e;
                 setInstallPrompt();
                 showBanner();
+            });
+
+            window.addEventListener('appinstalled', () => {
+                deferredPrompt = null;
+                hideBanner();
             });
         });
 
