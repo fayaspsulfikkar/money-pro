@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'money-pro-v2';
+const CACHE_VERSION = 'money-pro-v3';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -55,4 +55,10 @@ self.addEventListener('fetch', (event) => {
         .catch(() => caches.match('./index.html'));
     })
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
